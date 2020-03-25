@@ -93,10 +93,12 @@ class EOS(object):
       s_ov_a=[self.grid.integrate(i[0]*i[1]) for i in itertools.product(orbitals_a, repeat=2)]
       s_ov_b=[self.grid.integrate(i[0]*i[1]) for i in itertools.product(orbitals_b, repeat=2)] 
  
-      return orbitals_a, orbitals_b
+      return orbitals_a, orbitals_b, 
 
-    def compute_oxidation_state(self, fragments=None):
-
+  
+    def compute_fragment_occupation(self, fragments=None):
+      #compues effective orbitals occupation for each fragment passed
+     
       nalpha=int(self.molecule.mo.nelectrons[0])
       nbeta= int(self.molecule.mo.nelectrons[1])
 
@@ -109,8 +111,7 @@ class EOS(object):
       else:
         frags = fragments
 
-
-#      #generating qij for each atom/fragment
+      #generating qij for each atom/fragment
       qij_alpha=np.zeros((len(frags),nalpha,nalpha))
       qij_beta=np.zeros((len(frags), nbeta, nbeta))
 
@@ -125,9 +126,39 @@ class EOS(object):
      #qij_a diagonalization
       u_a, s_a, vt_a = np.linalg.svd(qij_alpha)
       u_b, s_b, vt_b = np.linalg.svd(qij_beta)
+   
 
+      np.set_printoptions(suppress=True) 
+      print 'alpha occupations', s_a 
+#      for i in s_a:
+#        print i
+      
+
+#      print 'beta occupations'
+#      for i in s_b:
+#        print i
+    
+
+
+      return s_a, s_b
+
+    def compute_oxidation_state(self, fragments=None):
       
      #compute oxidation state for fragments
+
+      nalpha=int(self.molecule.mo.nelectrons[0])
+      nbeta= int(self.molecule.mo.nelectrons[1])
+
+
+     #defining fragments/atoms
+      if fragments is None:
+        frags =  [[item] for item in self.molecule.numbers]
+      else:
+        frags = fragments
+
+
+      s_a, s_b = self.compute_fragment_occupation(fragments)
+
 
       occupations_alpha=[]
       occupations_beta=[]
@@ -212,6 +243,7 @@ class EOS(object):
       print 'Reliability index R(%) =', r_alpha
      
       print'Fragment', '    ' , 'oxidation state'
+      oxidation = []
       for a in range(len(frags)):
         occ = len(s_a_occ[a]) + len(s_b_occ[a])
         z = 0
@@ -221,11 +253,13 @@ class EOS(object):
           for elem in frags[a]:
             z = z + self.molecule.numbers[elem]
 
-        oxidation = z - occ
-        print a,'    ' , oxidation
+        os = z - occ
+        oxidation.append([os,a])  
+        print a,'    ' , os
       
-      
+      print oxidation
 
+      return oxidation 
    
 
 
