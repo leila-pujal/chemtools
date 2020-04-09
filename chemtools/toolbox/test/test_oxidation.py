@@ -110,8 +110,10 @@ def test_eos_h_h2o_1fragments():
         eos = EOS.from_molecule(mol, part, grid)
     # test occupations
 #    occs = np.array([1.0, 1.0, 1.0, 0.9, 0.9])
-    occs = np.array([[1.0000,   1.0000,   1.0000,   1.0000,   0.9999]])
-    result = eos.compute_fragment_occupation([[0, 1, 2]]) 
+    occs = np.array([1.0000,   1.0000,   1.0000,   1.0000,   0.9999])
+    result = eos.compute_fragment_occupation([[0, 1, 2]], spin='a')
+    assert_almost_equal(occs, result[0], decimal=3)
+    result = eos.compute_fragment_occupation([[0, 1, 2]], spin='b')
     assert_almost_equal(occs, result[0], decimal=3)
     # test oxidation states
     assert_equal([[0,0]], eos.compute_oxidation_state([[0, 1, 2]]))

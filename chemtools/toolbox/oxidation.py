@@ -102,19 +102,17 @@ class EOS(object):
 
         return arr
 
-    def compute_fragment_occupation(self, fragments=None):
+    def compute_fragment_occupation(self, fragments=None, spin='ab'):
         # computes effective orbitals occupation for each fragment passed
 
-        # TODO: avoid repeated calculation for restricted case
-        qij_alpha = self.compute_fragment_overlap(fragments, spin='a')
-        qij_beta = self.compute_fragment_overlap(fragments, spin='b')
+        # compute fragment overlap matrix
+        arr = self.compute_fragment_overlap(fragments, spin=spin)
 
-        # qij_a diagonalization
-        u_a, s_a, vt_a = np.linalg.svd(qij_alpha)
-        u_b, s_b, vt_b = np.linalg.svd(qij_beta)
+        # diagonalize overlap matrix
+        _, s, _ = np.linalg.svd(arr)
 
         np.set_printoptions(suppress=True)
-        print 'alpha occupations', s_a
+        print 'alpha occupations', s
         # for i in s_a:
         # print i
 
@@ -122,7 +120,7 @@ class EOS(object):
 #      for i in s_b:
 #        print i
 
-        return s_a, s_b
+        return s
 
     def compute_oxidation_state(self, fragments=None):
 
@@ -131,7 +129,9 @@ class EOS(object):
         nalpha = int(self.molecule.mo.nelectrons[0])
         nbeta = int(self.molecule.mo.nelectrons[1])
 
-        s_a, s_b = self.compute_fragment_occupation(fragments)
+        # TODO: avoid repeated calculation for restricted case
+        s_a = self.compute_fragment_occupation(fragments, spin='a')
+        s_b = self.compute_fragment_occupation(fragments, spin='b')
 
         occupations_alpha = []
         occupations_beta = []
