@@ -38,6 +38,7 @@ class EOS(object):
         self.molecule = molecule
         self.part = part
         self.grid = grid
+        self._frags = None
 
     @classmethod
     def from_molecule(cls, molecule, part, grid):
@@ -78,39 +79,40 @@ class EOS(object):
         nalpha = int(self.molecule.mo.nelectrons[0])
         nbeta = int(self.molecule.mo.nelectrons[1])
 
+        # defining fragments/atoms
+        if fragments is None:
+            self._frags = [[item] for item in self.molecule.numbers]
+        else:
+            self._frags = fragments
+
+#        orbitals_a = self.molecule.compute_molecular_orbital(self.grid.points, "a")
+#        orbitals_b = self.molecule.compute_molecular_orbital(self.grid.points, "b")
+
+
         orbitals_a = [self.molecule.compute_molecular_orbital(self.grid.points, "a", index=i).ravel() for i in range(1, nalpha+1)]
         orbitals_b = [self.molecule.compute_molecular_orbital(self.grid.points, "b", index=i).ravel() for i in range(1, nbeta+1)]
+#
+        # generating qij for each atom/fragment
+        qij_alpha = np.zeros((len(self._frags), nalpha, nalpha))
+        qij_beta = np.zeros((len(self._frags), nbeta, nbeta))
 
-        # s_ov_a=[self.grid.integrate(i[0]*i[1]) for i in itertools.product(orbitals_a, repeat=2)]
-        # s_ov_b=[self.grid.integrate(i[0]*i[1]) for i in itertools.product(orbitals_b, repeat=2)]
+        for i, j in itertools.combinations_with_replacement(range(nalpha), 2):
+            qij_a = self.part.condense_to_fragments(orbitals_a[i]*orbitals_a[j],
+                    fragments, w_power=2)
+            qij_b = self.part.condense_to_fragments(orbitals_b[i]*orbitals_b[j],
+                    fragments, w_power=2)
+            for x in range(len(self._frags)):
+                qij_alpha[x][i][j] = qij_a[x]
+                qij_alpha[x][j][i] = qij_a[x]
+                qij_beta[x][i][j] = qij_b[x]
+                qij_beta[x][j][i] = qij_b[x]
 
-        return orbitals_a, orbitals_b,
+        return qij_alpha, qij_beta
 
     def compute_fragment_occupation(self, fragments=None):
         # computes effective orbitals occupation for each fragment passed
 
-        nalpha = int(self.molecule.mo.nelectrons[0])
-        nbeta = int(self.molecule.mo.nelectrons[1])
-
-        orbitals_a, orbitals_b = self.compute_fragment_overlap()
-
-        # defining fragments/atoms
-        if fragments is None:
-            frags = [[item] for item in self.molecule.numbers]
-        else:
-            frags = fragments
-
-        # generating qij for each atom/fragment
-        qij_alpha = np.zeros((len(frags), nalpha, nalpha))
-        qij_beta = np.zeros((len(frags), nbeta, nbeta))
-
-        for x in range(len(frags)):
-            qij_a = [self.part.condense_to_fragments(i[0]*i[1], fragments, w_power=2)[x] for i in itertools.product(orbitals_a, repeat=2)]
-            qij_b = [self.part.condense_to_fragments(i[0]*i[1], fragments, w_power=2)[x] for i in itertools.product(orbitals_b, repeat=2)]
-            qij_a = np.reshape(qij_a, (nalpha, nalpha))
-            qij_b = np.reshape(qij_b, (nbeta, nbeta))
-            qij_alpha[x] = qij_a
-            qij_beta[x] = qij_b
+        qij_alpha, qij_beta = self.compute_fragment_overlap(fragments)
 
         # qij_a diagonalization
         u_a, s_a, vt_a = np.linalg.svd(qij_alpha)
@@ -128,41 +130,36 @@ class EOS(object):
         return s_a, s_b
 
     def compute_oxidation_state(self, fragments=None):
-      
+
         # compute oxidation state for fragments
 
         nalpha = int(self.molecule.mo.nelectrons[0])
         nbeta = int(self.molecule.mo.nelectrons[1])
-
-        # defining fragments/atoms
-        if fragments is None:
-            frags = [[item] for item in self.molecule.numbers]
-        else:
-            frags = fragments
 
         s_a, s_b = self.compute_fragment_occupation(fragments)
 
         occupations_alpha = []
         occupations_beta = []
 
-        for a in range(len(frags)):
+        for a in range(len(self._frags)):
             for i in range(nalpha):
                 occupations_alpha.append((s_a[a][i], a))
 
-        for a in range(len(frags)):
+        for a in range(len(self._frags)):
             for i in range(nbeta):
                 occupations_beta.append((s_b[a][i], a))
 
         sorted_alpha = sorted(occupations_alpha, key=itemgetter(0), reverse=True)
         sorted_beta = sorted(occupations_beta, key=itemgetter(0), reverse=True)
 
-        s_a_occ = [[] for i in range(len(frags))]
-        s_b_occ = [[] for i in range(len(frags))]
+        s_a_occ = [[] for _ in range(len(self._frags))]
+        s_b_occ = [[] for _ in range(len(self._frags))]
 
-        s_a_uncc = [[] for i in range(len(frags))]
-        s_b_uncc = [[] for i in range(len(frags))]
+        s_a_uncc = [[] for _ in range(len(self._frags))]
+        s_b_uncc = [[] for _ in range(len(self._frags))]
 
         lo_a = 0
+        print s_a_occ
         for index, e in enumerate(sorted_alpha):
             if index < nalpha:
                 s_a_occ[e[1]].append(e)
@@ -181,7 +178,7 @@ class EOS(object):
         # Reliability index
         r_alpha = 0
         fu_a = lo_a + 1
-        if len(frags) == 1:
+        if len(self._frags) == 1:
             r_alpha = 100.000
         else:
             while True:
@@ -192,7 +189,7 @@ class EOS(object):
 
         r_beta = 0
         fu_b = lo_b + 1
-        if len(frags) == 1:
+        if len(self._frags) == 1:
             r_beta = 100.000
         else:
             while True:
@@ -204,7 +201,7 @@ class EOS(object):
             r_alpha = 100 * (sorted_alpha[lo_a][0] - sorted_alpha[fu_a][0] + 0.5)
             r_beta = 100 * (sorted_beta[lo_b][0] - sorted_beta[fu_b][0] + 0.5)
 
-        for a in range(len(frags)):
+        for a in range(len(self._frags)):
             print 'Fragment', a, 'net occupations'
             print 'alpha occupied ', s_a_occ[a]
             print 'alpha unoccupied ', s_a_uncc[a]
@@ -217,16 +214,15 @@ class EOS(object):
 #     print(sorted_beta[lo_b], sorted_beta[fu_b], r_beta)
 
         print 'Reliability index R(%) =', r_alpha, r_beta
-     
         print 'Fragment', '    ', 'oxidation state'
         oxidation = []
-        for a in range(len(frags)):
+        for a in range(len(self._frags)):
             occ = len(s_a_occ[a]) + len(s_b_occ[a])
             z = 0
             if fragments is None:
                 z = self.molecule.numbers[a]
             else:
-                for elem in frags[a]:
+                for elem in self._frags[a]:
                     z = z + self.molecule.numbers[elem]
 
             os = z - occ
