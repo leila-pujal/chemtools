@@ -76,8 +76,12 @@ class EOS(object):
     def compute_fragment_overlap(self, fragments=None, spin='ab'):
         # compute MO overlap matrix for fragments
 
-        nalpha = int(self.molecule.mo.nelectrons[0])
-        nbeta = int(self.molecule.mo.nelectrons[1])
+        if spin == 'a':
+            ne = int(self.molecule.mo.nelectrons[0])
+        elif spin == 'b':
+            ne = int(self.molecule.mo.nelectrons[1])
+        else:
+            raise NotImplementedError('Not clear what to do here!')
 
         # defining fragments/atoms
         if fragments is None:
@@ -85,34 +89,25 @@ class EOS(object):
         else:
             self._frags = fragments
 
-#        orbitals_a = self.molecule.compute_molecular_orbital(self.grid.points, "a")
-#        orbitals_b = self.molecule.compute_molecular_orbital(self.grid.points, "b")
+        orbitals = self.molecule.compute_molecular_orbital(self.grid.points, spin=spin).T
 
+        # generating qij array for each atom/fragment
+        arr = np.zeros((len(self._frags), ne, ne))
 
-        orbitals_a = [self.molecule.compute_molecular_orbital(self.grid.points, "a", index=i).ravel() for i in range(1, nalpha+1)]
-        orbitals_b = [self.molecule.compute_molecular_orbital(self.grid.points, "b", index=i).ravel() for i in range(1, nbeta+1)]
-#
-        # generating qij for each atom/fragment
-        qij_alpha = np.zeros((len(self._frags), nalpha, nalpha))
-        qij_beta = np.zeros((len(self._frags), nbeta, nbeta))
-
-        for i, j in itertools.combinations_with_replacement(range(nalpha), 2):
-            qij_a = self.part.condense_to_fragments(orbitals_a[i]*orbitals_a[j],
-                    fragments, w_power=2)
-            qij_b = self.part.condense_to_fragments(orbitals_b[i]*orbitals_b[j],
-                    fragments, w_power=2)
+        for i, j in itertools.combinations_with_replacement(range(ne), 2):
+            qij = self.part.condense_to_fragments(orbitals[i] * orbitals[j], self._frags, w_power=2)
             for x in range(len(self._frags)):
-                qij_alpha[x][i][j] = qij_a[x]
-                qij_alpha[x][j][i] = qij_a[x]
-                qij_beta[x][i][j] = qij_b[x]
-                qij_beta[x][j][i] = qij_b[x]
+                arr[x][i][j] = qij[x]
+                arr[x][j][i] = qij[x]
 
-        return qij_alpha, qij_beta
+        return arr
 
     def compute_fragment_occupation(self, fragments=None):
         # computes effective orbitals occupation for each fragment passed
 
-        qij_alpha, qij_beta = self.compute_fragment_overlap(fragments)
+        # TODO: avoid repeated calculation for restricted case
+        qij_alpha = self.compute_fragment_overlap(fragments, spin='a')
+        qij_beta = self.compute_fragment_overlap(fragments, spin='b')
 
         # qij_a diagonalization
         u_a, s_a, vt_a = np.linalg.svd(qij_alpha)
