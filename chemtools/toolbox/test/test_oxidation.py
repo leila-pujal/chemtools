@@ -42,14 +42,12 @@ except ImportError:
 
 def test_eos_h_h2o_3fragments():
     # test against APOST-3D (version 3.1)
-    atoms=glob.glob('/home/leila/chemtools_dev/chemtools/chemtools/data/examples/atom_0*')
-    proatomdb = ProAtomDB.from_files(atoms,"power:5e-8:20:40:146")
-    print atoms
+    atoms = glob.glob('chemtools/data/examples/atom_0*')
+    proatomdb = ProAtomDB.from_files(atoms, "power:5e-8:20:40:146")
 
     with path('chemtools.data.examples', 'h2o.fchk') as file_path:
         mol = Molecule.from_file(file_path)
         # make proatom & pass it to Denspart
-
         grid = MolecularGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers,
                              specs='power:5e-8:20:40:146', rotate=False, k=4)
         part = DensPart.from_molecule(mol, scheme="h", grid=grid, local=False, proatomdb=proatomdb)
@@ -57,56 +55,53 @@ def test_eos_h_h2o_3fragments():
     # test occupations default fragments
     occupation_o = np.array([0.9950, 0.8933, 0.7876, 0.5591, 0.5384])
     occupation_h = np.array([0.1860, 0.0219, 0.0135, 0.0, 0.0])
-    result = eos.compute_fragment_occupation()
-    assert_almost_equal(occupation_o, result[0][0], decimal=3)
-    assert_almost_equal(occupation_h, result[0][1], decimal=2)
-    assert_almost_equal(occupation_h, result[0][2], decimal=2)
+    result = eos.compute_fragment_occupation(spin='a')
+    assert_almost_equal(occupation_o, result[0], decimal=3)
+    assert_almost_equal(occupation_h, result[1], decimal=2)
+    assert_almost_equal(occupation_h, result[2], decimal=2)
     # test oxidation states default fragments
-    assert_equal([[-2.0, 0], [1,1], [1,2]],  eos.compute_oxidation_state())
+    assert_equal([[-2.0, 0], [1, 1], [1, 2]],  eos.compute_oxidation_state())
 
     # test occupations given 3 fragemts 
-    result = eos.compute_fragment_occupation([[0],[1],[2]])
-    assert_almost_equal(occupation_o, result[0][0], decimal=3)
-    assert_almost_equal(occupation_h, result[0][1], decimal=2)
-    assert_almost_equal(occupation_h, result[0][2], decimal=2)
+    result = eos.compute_fragment_occupation([[0], [1], [2]], spin='a')
+    assert_almost_equal(occupation_o, result[0], decimal=3)
+    assert_almost_equal(occupation_h, result[1], decimal=2)
+    assert_almost_equal(occupation_h, result[2], decimal=2)
     # test oxidation states given 3 fragments
-    assert_equal([[-2.0, 0], [1,1], [1,2]],  eos.compute_oxidation_state([[0],[1],[2]]))
-
-
+    assert_equal([[-2.0, 0], [1, 1], [1, 2]],  eos.compute_oxidation_state([[0], [1], [2]]))
 
 
 def test_eos_h_h2o_2fragments():
     # test against APOST-3D (version 3.1)
-    atoms=glob.glob('/home/leila/chemtools_dev/chemtools/chemtools/data/examples/atom_0*')    
-    proatomdb = ProAtomDB.from_files(atoms,"power:5e-8:20:40:146")
-    print atoms
+    atoms = glob.glob('chemtools/data/examples/atom_0*')
+    proatomdb = ProAtomDB.from_files(atoms, "power:5e-8:20:40:146")
 
     with path('chemtools.data.examples', 'h2o.fchk') as file_path:
         mol = Molecule.from_file(file_path)
         # make proatom & pass it to Denspart
-
         grid = MolecularGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers,
-	       		     specs='power:5e-8:20:40:146', rotate=False, k=4)
+                             specs='power:5e-8:20:40:146', rotate=False, k=4)
         part = DensPart.from_molecule(mol, scheme="h", grid=grid, local=False, proatomdb=proatomdb)
         eos = EOS.from_molecule(mol, part, grid)
     # test occupations
-    occs_f1 = np.array([0.9975,   0.9680,   0.9183,   0.8894,   0.5958]) 
+    occs_f1 = np.array([0.9975,   0.9680,   0.9183,   0.8894,   0.5958])
     occs_f2 = np.array([0.1859, 0.0219, 0.0135, 0.0, 0.0])
-    result = eos.compute_fragment_occupation([[0, 1], [2]])
-    assert_almost_equal(occs_f1, result[0][0], decimal=3)
-    assert_almost_equal(occs_f2, result[0][1], decimal=2)
+    result = eos.compute_fragment_occupation([[0, 1], [2]], spin='a')
+    assert_almost_equal(occs_f1, result[0], decimal=3)
+    assert_almost_equal(occs_f2, result[1], decimal=2)
     # test oxidation states
-    assert_equal([[-1,0], [1,1]],  eos.compute_oxidation_state([[0,1],[2]]))
-
+    assert_equal([[-1, 0], [1, 1]],  eos.compute_oxidation_state([[0, 1], [2]]))
 
 def test_eos_h_h2o_1fragments():
     # test against APOST-3D (version 3.1)
+    atoms = glob.glob('chemtools/data/examples/atom_0*')
+    proatomdb = ProAtomDB.from_files(atoms, "power:5e-8:20:40:146")
+
     with path('chemtools.data.examples', 'h2o.fchk') as file_path:
         mol = Molecule.from_file(file_path)
-        # make proatom & pass it to Denspart
-        grid =MolecularGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers,
-                  specs='power:5e-8:20:40:146', rotate=False, k=4)
-        part = DensPart.from_molecule(mol, scheme="h", grid=grid, local=False)
+        grid = MolecularGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers,
+                             specs='power:5e-8:20:40:146', rotate=False, k=4)
+        part = DensPart.from_molecule(mol, scheme="h", grid=grid, local=False,  proatomdb=proatomdb)
         eos = EOS.from_molecule(mol, part, grid)
     # test occupations
 #    occs = np.array([1.0, 1.0, 1.0, 0.9, 0.9])
@@ -116,4 +111,4 @@ def test_eos_h_h2o_1fragments():
     result = eos.compute_fragment_occupation([[0, 1, 2]], spin='b')
     assert_almost_equal(occs, result[0], decimal=3)
     # test oxidation states
-    assert_equal([[0,0]], eos.compute_oxidation_state([[0, 1, 2]]))
+    assert_equal([[0, 0]], eos.compute_oxidation_state([[0, 1, 2]]))
