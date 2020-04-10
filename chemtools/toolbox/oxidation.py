@@ -85,7 +85,7 @@ class EOS(object):
 
         # defining fragments/atoms
         if fragments is None:
-            self._frags = [[item] for item in self.molecule.numbers]
+           self._frags = [[index] for index in range(len(self.molecule.numbers))]
         else:
             self._frags = fragments
 
