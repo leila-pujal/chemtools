@@ -60,15 +60,15 @@ def test_eos_h_h2o_3fragments():
     assert_almost_equal(occupation_h, result[1], decimal=2)
     assert_almost_equal(occupation_h, result[2], decimal=2)
     # test oxidation states default fragments
-    assert_equal([[-2.0, 0], [1, 1], [1, 2]],  eos.compute_oxidation_state())
+    assert_equal([-2.0, 1.0, 1.0],  eos.compute_oxidation_state())
 
-    # test occupations given 3 fragemts 
+    # test occupations given 3 fragemts
     result = eos.compute_fragment_occupation([[0], [1], [2]], spin='a')
     assert_almost_equal(occupation_o, result[0], decimal=3)
     assert_almost_equal(occupation_h, result[1], decimal=2)
     assert_almost_equal(occupation_h, result[2], decimal=2)
     # test oxidation states given 3 fragments
-    assert_equal([[-2.0, 0], [1, 1], [1, 2]],  eos.compute_oxidation_state([[0], [1], [2]]))
+    assert_equal([-2.0, 1.0, 1.0],  eos.compute_oxidation_state([[0], [1], [2]]))
 
 
 def test_eos_h_h2o_2fragments():
@@ -90,7 +90,8 @@ def test_eos_h_h2o_2fragments():
     assert_almost_equal(occs_f1, result[0], decimal=3)
     assert_almost_equal(occs_f2, result[1], decimal=2)
     # test oxidation states
-    assert_equal([[-1, 0], [1, 1]],  eos.compute_oxidation_state([[0, 1], [2]]))
+    assert_equal([-1.0, 1.0],  eos.compute_oxidation_state([[0, 1], [2]]))
+
 
 def test_eos_h_h2o_1fragments():
     # test against APOST-3D (version 3.1)
@@ -111,4 +112,4 @@ def test_eos_h_h2o_1fragments():
     result = eos.compute_fragment_occupation([[0, 1, 2]], spin='b')
     assert_almost_equal(occs, result[0], decimal=3)
     # test oxidation states
-    assert_equal([[0, 0]], eos.compute_oxidation_state([[0, 1, 2]]))
+    assert_equal([0.0], eos.compute_oxidation_state([[0, 1, 2]]))

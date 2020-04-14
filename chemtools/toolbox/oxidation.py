@@ -226,7 +226,7 @@ class EOS(object):
 
         print oxidation
 
-        return oxidation
+        return [item[0] for item in oxidation]
 
     def compute_effective_orbital(self):
         pass
