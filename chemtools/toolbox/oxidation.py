@@ -133,100 +133,111 @@ class EOS(object):
         s_a = self.compute_fragment_occupation(fragments, spin='a')
         s_b = self.compute_fragment_occupation(fragments, spin='b')
 
-        occupations_alpha = []
-        occupations_beta = []
+        sorted_alpha = sorted([(s, i) for i, row in enumerate(s_a) for s in row], reverse=True)
+        sorted_beta = sorted([(s, i) for i, row in enumerate(s_b) for s in row], reverse=True)
 
-        for a in range(len(self._frags)):
-            for i in range(nalpha):
-                occupations_alpha.append((s_a[a][i], a))
+        # occupations_alpha = []
+        # occupations_beta = []
+        #
+        # for a in range(len(self._frags)):
+        #     for i in range(nalpha):
+        #         occupations_alpha.append((s_a[a][i], a))
+        #
+        # for a in range(len(self._frags)):
+        #     for i in range(nbeta):
+        #         occupations_beta.append((s_b[a][i], a))
+        #
+        # sorted_alpha = sorted(occupations_alpha, key=itemgetter(0), reverse=True)
+        # sorted_beta = sorted(occupations_beta, key=itemgetter(0), reverse=True)
 
-        for a in range(len(self._frags)):
-            for i in range(nbeta):
-                occupations_beta.append((s_b[a][i], a))
+        occs_a = [item[1] for item in sorted_alpha]
+        occs_b = [item[1] for item in sorted_beta]
 
-        sorted_alpha = sorted(occupations_alpha, key=itemgetter(0), reverse=True)
-        sorted_beta = sorted(occupations_beta, key=itemgetter(0), reverse=True)
+        occs_frag_a = [occs_a[:nalpha].count(index) for index in range(len(self._frags))]
+        occs_frag_b = [occs_b[:nbeta].count(index) for index in range(len(self._frags))]
 
-        s_a_occ = [[] for _ in range(len(self._frags))]
-        s_b_occ = [[] for _ in range(len(self._frags))]
+        z_frag = [sum([self.molecule.numbers[index] for index in frag]) for frag in self._frags]
+        oxidation = np.array(z_frag) - np.array(occs_frag_a) - np.array(occs_frag_b)
 
-        s_a_uncc = [[] for _ in range(len(self._frags))]
-        s_b_uncc = [[] for _ in range(len(self._frags))]
+#         s_a_occ = [[] for _ in range(len(self._frags))]
+#         s_b_occ = [[] for _ in range(len(self._frags))]
+#
+#         s_a_uncc = [[] for _ in range(len(self._frags))]
+#         s_b_uncc = [[] for _ in range(len(self._frags))]
+#
+#         lo_a = 0
+#         print s_a_occ
+#         for index, e in enumerate(sorted_alpha):
+#             if index < nalpha:
+#                 s_a_occ[e[1]].append(e)
+#                 lo_a = index
+#             else:
+#                 s_a_uncc[e[1]].append(e)
+#
+#         lo_b = 0
+#         for index, e in enumerate(sorted_beta):
+#             if index < nbeta:
+#                 s_b_occ[e[1]].append(e)
+#                 lo_b = index
+#             else:
+#                 s_b_uncc[e[1]].append(e)
+#
+#         # Reliability index
+#         r_alpha = 0
+#         fu_a = lo_a + 1
+#         if len(self._frags) == 1:
+#             r_alpha = 100.000
+#         else:
+#             while True:
+#                 if sorted_alpha[lo_a][1] == sorted_alpha[fu_a][1]:
+#                     fu_a = fu_a + 1
+#                 else:
+#                     break
+#
+#         r_beta = 0
+#         fu_b = lo_b + 1
+#         if len(self._frags) == 1:
+#             r_beta = 100.000
+#         else:
+#             while True:
+#                 if sorted_beta[lo_b][1] == sorted_beta[fu_b][1]:
+#                     fu_b = fu_b + 1
+#                 else:
+#                     break
+#
+#             r_alpha = 100 * (sorted_alpha[lo_a][0] - sorted_alpha[fu_a][0] + 0.5)
+#             r_beta = 100 * (sorted_beta[lo_b][0] - sorted_beta[fu_b][0] + 0.5)
+#
+#         for a in range(len(self._frags)):
+#             print 'Fragment', a, 'net occupations'
+#             print 'alpha occupied ', s_a_occ[a]
+#             print 'alpha unoccupied ', s_a_uncc[a]
+#             print
+#             print 'beta occupied ', s_b_occ[a]
+#             print 'beta unocupied ', s_b_uncc[a]
+#             print
+#
+# #     print(sorted_alpha[lo_a], sorted_alpha[fu_a], r_alpha)
+# #     print(sorted_beta[lo_b], sorted_beta[fu_b], r_beta)
+#
+#         print 'Reliability index R(%) =', r_alpha, r_beta
+#         print 'Fragment', '    ', 'oxidation state'
+#         oxidation = []
+#         for a in range(len(self._frags)):
+#             occ = len(s_a_occ[a]) + len(s_b_occ[a])
+#             z = 0
+#             if fragments is None:
+#                 z = self.molecule.numbers[a]
+#             else:
+#                 for elem in self._frags[a]:
+#                     z = z + self.molecule.numbers[elem]
+#
+#             os = z - occ
+#             oxidation.append([os, a])
+#             print a, '    ', os
+#        print oxidation
 
-        lo_a = 0
-        print s_a_occ
-        for index, e in enumerate(sorted_alpha):
-            if index < nalpha:
-                s_a_occ[e[1]].append(e)
-                lo_a = index
-            else:
-                s_a_uncc[e[1]].append(e)
-
-        lo_b = 0
-        for index, e in enumerate(sorted_beta):
-            if index < nbeta:
-                s_b_occ[e[1]].append(e)
-                lo_b = index
-            else:
-                s_b_uncc[e[1]].append(e)
-
-        # Reliability index
-        r_alpha = 0
-        fu_a = lo_a + 1
-        if len(self._frags) == 1:
-            r_alpha = 100.000
-        else:
-            while True:
-                if sorted_alpha[lo_a][1] == sorted_alpha[fu_a][1]:
-                    fu_a = fu_a + 1
-                else:
-                    break
-
-        r_beta = 0
-        fu_b = lo_b + 1
-        if len(self._frags) == 1:
-            r_beta = 100.000
-        else:
-            while True:
-                if sorted_beta[lo_b][1] == sorted_beta[fu_b][1]:
-                    fu_b = fu_b + 1
-                else:
-                    break
-
-            r_alpha = 100 * (sorted_alpha[lo_a][0] - sorted_alpha[fu_a][0] + 0.5)
-            r_beta = 100 * (sorted_beta[lo_b][0] - sorted_beta[fu_b][0] + 0.5)
-
-        for a in range(len(self._frags)):
-            print 'Fragment', a, 'net occupations'
-            print 'alpha occupied ', s_a_occ[a]
-            print 'alpha unoccupied ', s_a_uncc[a]
-            print
-            print 'beta occupied ', s_b_occ[a]
-            print 'beta unocupied ', s_b_uncc[a]
-            print
-
-#     print(sorted_alpha[lo_a], sorted_alpha[fu_a], r_alpha)
-#     print(sorted_beta[lo_b], sorted_beta[fu_b], r_beta)
-
-        print 'Reliability index R(%) =', r_alpha, r_beta
-        print 'Fragment', '    ', 'oxidation state'
-        oxidation = []
-        for a in range(len(self._frags)):
-            occ = len(s_a_occ[a]) + len(s_b_occ[a])
-            z = 0
-            if fragments is None:
-                z = self.molecule.numbers[a]
-            else:
-                for elem in self._frags[a]:
-                    z = z + self.molecule.numbers[elem]
-
-            os = z - occ
-            oxidation.append([os, a])
-            print a, '    ', os
-
-        print oxidation
-
-        return [item[0] for item in oxidation]
+        return oxidation
 
     def compute_effective_orbital(self):
         pass
