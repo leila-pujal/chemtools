@@ -30,8 +30,6 @@ from chemtools.wrappers.part import DensPart
 import numpy as np
 import itertools
 
-from operator import itemgetter
-
 
 class EOS(object):
     def __init__(self, molecule, part, grid):
@@ -86,7 +84,7 @@ class EOS(object):
 
         # defining fragments/atoms
         if fragments is None:
-           self._frags = [[index] for index in range(len(self.molecule.numbers))]
+            self._frags = [[index] for index in range(len(self.molecule.numbers))]
         else:
             self._frags = fragments
 
@@ -147,15 +145,13 @@ class EOS(object):
         oxidation = np.array(z_frag) - np.array(occs_frag_a) - np.array(occs_frag_b)
 
         # Reliability index
-        homo_a = nalpha - 1
         lumo_a = nalpha
-        if len(self._frags) == 1:
-            self._reliability = 100.00
-        else:
-            while sorted_alpha[homo_a][1] == sorted_alpha[lumo_a][1]:
+        self._reliability = 100.00
+        if len(self._frags) != 1:
+            while sorted_alpha[nalpha-1][1] == sorted_alpha[lumo_a][1]:
                 lumo_a += 1
 
-            self._reliability = 100 * (sorted_alpha[homo_a][0] - sorted_alpha[lumo_a][0] + 0.5)
+            self._reliability = 100 * (sorted_alpha[nalpha-1][0] - sorted_alpha[lumo_a][0] + 0.5)
 
         return oxidation
 
