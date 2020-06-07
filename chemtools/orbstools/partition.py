@@ -356,6 +356,31 @@ class OrbitalPartitionTools(object):
 
         return output
 
+    def mulliken_gross_populations(self):
+        """Return Mulliken gross population
+
+        Returns
+        -------
+        population : np.ndarray(N, N)
+            Mulliken population for each atom is decomposed in local(diagonal)
+            and cross (non-diagonal) terms. Sum of each row/column
+            corresponds to Mulliken population for that atom.
+
+        """
+
+        density = (self.coeff_ab_mo * self.occupations[None, :]).dot(self.coeff_ab_mo.T)
+        gross = np.zeros((self.num_atoms, self.num_atoms))
+
+        for atom_a, atom_b in it.product(range(self.num_atoms), repeat=2):
+            raw_dm = density[self.ab_atom_indices == atom_a]
+            raw_dm = raw_dm[:, self.ab_atom_indices == atom_b]
+            raw_ovl = self.olp_ab_ab[self.ab_atom_indices == atom_a]
+            raw_ovl = raw_ovl[:, self.ab_atom_indices == atom_b]
+            raw_gross = np.dot(raw_dm, raw_ovl.T)
+            gross[atom_a][atom_b] = np.trace(raw_gross)
+
+        return gross
+
     def transform_orbitals(self, coeff_ab_new, new_atom_indices):
         """Return a new instance of OrbitalPartitionTools with the orbitals transformed.
 
@@ -500,3 +525,49 @@ class OrbitalPartitionTools(object):
         """
         # pylint: disable=C0103
         return 2 * self.bond_order_wiberg_mayer
+
+    def multicenter_bond_order(self, centers):
+        """Return Multicenter bond order
+
+        Parameters
+        ----------
+        centers : list
+            Atoms taking part of the Multicenter bond order.
+
+        Returns
+        -------
+        Multicenter bond order, normalized multicenter bond order : np.array([2,])
+
+        """
+
+        if len(centers) > self.num_atoms:
+            raise ValueError(
+                    "Number of atoms of the  multicenter bond order "
+                    "should be less than the total number of atoms"
+                )
+        else:
+            extended_centers = list(centers)
+            extended_centers.append(centers[0])
+
+        density = (self.coeff_ab_mo * self.occupations[None, :]).dot(self.coeff_ab_mo.T)
+        ps = np.dot(density, self.olp_ab_ab)
+
+        raw_multicenter = [[]]*(len(centers))
+
+        for i in range(1, len(extended_centers)):
+            tmp = ps[self.ab_atom_indices == extended_centers[i-1]]
+            tmp = tmp[:, self.ab_atom_indices == extended_centers[i]]
+            raw_multicenter[i-1] = tmp
+
+        raw_multicenter = np.array(raw_multicenter)
+
+        for m in range(1, len(centers)):
+            raw_multicenter[m] = np.dot(raw_multicenter[m-1], raw_multicenter[m])
+
+        multicenter_bond_order = np.trace(raw_multicenter[-1])
+        norm_multicenter_bond_order = (abs(multicenter_bond_order))**(1/float(len(centers)))
+
+        if multicenter_bond_order < 0:
+            return np.array([multicenter_bond_order, -norm_multicenter_bond_order])
+        else:
+            return np.array([multicenter_bond_order, norm_multicenter_bond_order])
