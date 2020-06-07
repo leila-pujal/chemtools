@@ -538,7 +538,10 @@ class AtomicOrbitals(object):
                 """
                 if orbtype < 0:
                     return 1 + 2 * abs(orbtype)
-                return 1 + orbtype + sum(i * (i + 1) / 2 for i in range(1, orbtype + 1))
+                elif orbtype < 2:
+                    return 1 + orbtype + sum(i * (i + 1) / 2 for i in range(1, orbtype + 1))
+                else:
+                    return orbtype + sum(i * (i + 1) / 2 for i in range(1, orbtype + 1))
 
             numcontr_per_shell = np.array([num_contr(i) for i in ind_shell_orbtype])
             # Duplicate each shell information by the number of contractions in shell
