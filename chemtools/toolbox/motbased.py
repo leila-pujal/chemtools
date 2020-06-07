@@ -130,6 +130,33 @@ class OrbPart(object):
                         arr[i, j] = 0.5
         return w
 
+    def mulliken_gross_populations(self):
+        """Return Mulliken gross population
+
+        Returns
+        -------
+        population : np.ndarray(N, N)
+            Mulliken population for each atom is decomposed in local(diagonal)
+            and cross (non-diagonal) terms. Sum of each row/column
+            corresponds to Mulliken population for that atom.
+
+        """
+
+        coeff_ab_mo_alpha, coeff_ab_mo_beta = self._mo.coefficient
+        occupations_alpha, occupations_beta = self._mo.occupation
+        occupations = occupations_alpha + occupations_beta
+        olp_ab_ab = self._ao.compute_overlap()
+        num_atoms = len(self._numbers)
+        ab_atom_indices = self._ao.center_index
+
+        orbpart = OrbitalPartitionTools(
+            coeff_ab_mo_alpha, occupations, olp_ab_ab, num_atoms, ab_atom_indices
+        )
+
+        mulliken_gross_populations = orbpart.mulliken_gross_populations()
+
+        return mulliken_gross_populations
+
     def compute_bond_orders(self, scheme="wiberg-mayer"):
         """Return the bond order for each pair of atoms.
 
@@ -170,6 +197,35 @@ class OrbPart(object):
             raise ValueError("Bond order scheme must 'wiberg-mayer'.")
 
         return bond_order
+
+    def multicenter_bond_order(self, centers):
+        """Return Multicenter bond order
+
+        Parameters
+        ----------
+        centers : list
+            Atoms taking part of the Multicenter bond order.
+
+        Returns
+        -------
+        Multicenter bond order, normalized multicenter bond order : np.array([,2])
+
+        """
+
+        coeff_ab_mo_alpha, coeff_ab_mo_beta = self._mo.coefficient
+        occupations_alpha, occupations_beta = self._mo.occupation
+        occupations = occupations_alpha + occupations_beta
+        olp_ab_ab = self._ao.compute_overlap()
+        num_atoms = len(self._numbers)
+        ab_atom_indices = self._ao.center_index
+
+        orbpart = OrbitalPartitionTools(
+            coeff_ab_mo_alpha, occupations, olp_ab_ab, num_atoms, ab_atom_indices
+        )
+
+        multicenter_bond_order = orbpart.multicenter_bond_order(centers)
+
+        return multicenter_bond_order
 
     # def generate_scripts(self, fname, spin='a', index=None, isosurf=0.05, grid=None):
     #     """Generate VMD script(s) and cube file(s) to visualize MO iso-surface of given orbitals.

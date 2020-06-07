@@ -83,3 +83,15 @@ def test_compute_bond_order():
     assert np.allclose(bond_order, mot.compute_bond_orders(), atol=1e-6)
 
     assert_raises(ValueError, mot.compute_bond_orders, "bad type")
+
+
+def test_gross_populations_mulliken_h2o():
+    # Test against Gaussian
+    with path("chemtools.data", "h2o_q+0_ub3lyp_ccpvtz.fchk") as fname:
+        assert_raises(ValueError, OrbPart.from_file, str(fname), 'bad type')
+        mot = OrbPart.from_file(str(fname))
+    mulliken_gross = np.array([[7.70094135, 0.36564307, 0.36564337],
+                              [0.365644, 0.468255, -0.050009],
+                              [0.36564337, -0.05000968, 0.46825259]])
+    assert np.allclose(mot.mulliken_gross_populations(), mulliken_gross, atol=1e-6)
+
