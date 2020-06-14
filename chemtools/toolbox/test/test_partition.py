@@ -95,3 +95,34 @@ def test_gross_populations_mulliken_h2o():
                               [0.36564337, -0.05000968, 0.46825259]])
     assert np.allclose(mot.mulliken_gross_populations(), mulliken_gross, atol=1e-6)
 
+
+def test_mulliken_bond_order_h2o():
+    # Test against multiwfn 3.6
+    # Test for alpha electrons from unrestricted calculation of h2o
+    with path("chemtools.data", "h2o_q+0_ub3lyp_ccpvtz.fchk") as fname:
+        mot = OrbPart.from_file(str(fname), 'mulliken')
+    mulliken_bond_order = np.array([[0.0, 0.365643, 0.365643],
+                                    [0.365643, 0.0, -0.050010],
+                                    [0.365643, -0.050010, 0.0]])
+    assert_allclose(mot.mulliken_bond_order(), mulliken_bond_order, atol=1e-6)
+
+
+def test_wiberg_bond_order_h2o():
+    # Test against multiwfn 3.6
+    # Test for alpha electrons from unrestricted calculation of h2o
+    with path("chemtools.data", "h2o_q+0_ub3lyp_ccpvtz.fchk") as fname:
+        mot = OrbPart.from_file(str(fname), 'mulliken')
+    wiberg_bond_order = np.array([[0.0, 0.739564, 0.739564],
+                                  [0.739564, 0.0, 0.099620],
+                                  [0.739564, 0.099620, 0.0]])
+    assert_allclose(mot.wiberg_bond_order(), wiberg_bond_order, atol=1e-6)
+
+
+def test_orb_occu_perturbed_mayer_bond_order_h2o():
+    # Test against multiwfn 3.6
+    # Test for alpha electrons from unrestricted calculation of h2o
+    with path("chemtools.data", "h2o_q+0_ub3lyp_ccpvtz.fchk") as fname:
+        mot = OrbPart.from_file(str(fname), 'mulliken')
+    orb_occu_perturbed_mayer_bond_order = np.array([0.51231, 0.39005, 0.27124, 0.44671, 0.47292])
+    assert_allclose(mot.orb_occu_perturbed_mayer_bond_order(atoms=[0, 1]),
+                    orb_occu_perturbed_mayer_bond_order, atol=1e-5)

@@ -157,6 +157,52 @@ class OrbPart(object):
 
         return mulliken_gross_populations
 
+    def mulliken_bond_order(self):
+        """Mulliken bond order.
+
+        Returns
+        -------
+        mulliken_bond_order : np.ndarray(N, N)
+            Mulliken bond orders of each pair of atoms.
+
+        """
+        coeff_ab_mo_alpha, coeff_ab_mo_beta = self._mo.coefficient
+        occupations_alpha, occupations_beta = self._mo.occupation
+        olp_ab_ab = self._ao.compute_overlap()
+        num_atoms = len(self._numbers)
+        ab_atom_indices = self._ao.center_index
+
+        orbpart = OrbitalPartitionTools(
+            coeff_ab_mo_alpha, occupations_alpha, olp_ab_ab, num_atoms, ab_atom_indices
+        )
+
+        mulliken_bond_order = orbpart.mulliken_bond_order()
+
+        return mulliken_bond_order
+
+    def wiberg_bond_order(self):
+        """Wiberg bond order for Lowdin orthogonalized atomic orbitals basis set.
+
+        Returns
+        -------
+        wiberg_bond_order : np.ndarray(N, N)
+            Wiberg bond orders of each pair of atoms.
+
+        """
+        coeff_ab_mo_alpha, coeff_ab_mo_beta = self._mo.coefficient
+        occupations_alpha, occupations_beta = self._mo.occupation
+        olp_ab_ab = self._ao.compute_overlap()
+        num_atoms = len(self._numbers)
+        ab_atom_indices = self._ao.center_index
+
+        orbpart = OrbitalPartitionTools(
+            coeff_ab_mo_alpha, occupations_alpha, olp_ab_ab, num_atoms, ab_atom_indices
+        )
+
+        wiberg_bond_order = orbpart.wiberg_bond_order()
+
+        return wiberg_bond_order
+
     def compute_bond_orders(self, scheme="wiberg-mayer"):
         """Return the bond order for each pair of atoms.
 
@@ -197,6 +243,35 @@ class OrbPart(object):
             raise ValueError("Bond order scheme must 'wiberg-mayer'.")
 
         return bond_order
+
+    def orb_occu_perturbed_mayer_bond_order(self, atoms):
+        """Orbital occupancy perturbed mayer bond order. Gives contributions of each MO
+            to bond between a pair of atoms.
+
+         Parameters
+         ----------
+         atoms : list
+             Atoms for which orbital-occupancy bond order wants to be computed
+
+         Returns
+         -------
+         Output : np.array([,occ_mo])
+            occ_mo is number of occupied molecular orbitals
+
+         """
+        coeff_ab_mo_alpha, coeff_ab_mo_beta = self._mo.coefficient
+        occupations_alpha, occupations_beta = self._mo.occupation
+        olp_ab_ab = self._ao.compute_overlap()
+        num_atoms = len(self._numbers)
+        ab_atom_indices = self._ao.center_index
+
+        orbpart = OrbitalPartitionTools(
+            coeff_ab_mo_alpha, occupations_alpha, olp_ab_ab, num_atoms, ab_atom_indices
+        )
+
+        orb_occu_perturbed_mayer_bond_order = orbpart.orb_occu_perturbed_mayer_bond_order(atoms)
+
+        return orb_occu_perturbed_mayer_bond_order
 
     def multicenter_bond_order(self, centers):
         """Return Multicenter bond order
