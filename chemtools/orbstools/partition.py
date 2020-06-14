@@ -441,6 +441,44 @@ class OrbitalPartitionTools(object):
         new_orbpart = self.transform_orbitals(coeff_ab_oab, self.ab_atom_indices)
         return new_orbpart.mulliken_populations(atom_weights=atom_weights)
 
+    def mulliken_bond_order(self):
+        """Mulliken bond order.
+
+        Returns
+        -------
+        mulliken_bond_order : np.ndarray(N, N)
+            Mulliken bond orders of each pair of atoms.
+
+        """
+        mulliken_bond_order = self.mulliken_gross_populations()
+        i = np.arange(self.num_atoms)
+        mulliken_bond_order[i, i] = 0
+        return mulliken_bond_order * 2
+
+    def wiberg_bond_order(self):
+        """Wiberg bond order for Lowdin orthogonalized atomic orbitals basis set.
+
+        Returns
+        -------
+        wiberg_bond_order : np.ndarray(N, N)
+            Wiberg bond orders of each pair of atoms.
+
+        """
+        coeff_ab_oab = power_symmetric(self.olp_ab_ab, -0.5)
+        new_orb = self.transform_orbitals(coeff_ab_oab, self.ab_atom_indices)
+        density = (new_orb.coeff_ab_mo * new_orb.occupations[None, :]).dot(new_orb.coeff_ab_mo.T)
+        wiberg_bond_order = np.zeros((self.num_atoms, self.num_atoms))
+        for atom_a, atom_b in it.combinations(range(self.num_atoms), 2):
+            raw_dm = density[self.ab_atom_indices == atom_a]
+            raw_dm = raw_dm[:, self.ab_atom_indices == atom_b]
+            wiberg_bond_order[atom_a][atom_b] = np.trace(np.dot(raw_dm, raw_dm.T))
+
+        wiberg_bond_order += wiberg_bond_order.transpose()
+        if self.occupations[0] == 1:
+            return wiberg_bond_order * 2
+        else:
+            return wiberg_bond_order
+
     def bond_order(self):
         """Return the bond order.
 
@@ -525,6 +563,54 @@ class OrbitalPartitionTools(object):
         """
         # pylint: disable=C0103
         return 2 * self.bond_order_wiberg_mayer
+
+    def orb_occu_perturbed_mayer_bond_order(self, atoms):
+        """Orbital occupancy perturbed mayer bond order. Gives contributions of each MO
+            to bond between a pair of atoms.
+
+         Parameters
+         ----------
+         atoms : list
+             Atoms for which orbital-occupancy bond order wants to be computed
+
+         Returns
+         -------
+         Output : np.array([,occ_mo])
+            occ_mo is number of occupied molecular orbitals
+
+         """
+        if self.occupations[0] == 2:
+            num_occ_mo = len(self.occupations[self.occupations == 2])
+        else:
+            num_occ_mo = len(self.occupations[self.occupations == 1])
+
+        ab_atom_indices = self.ab_atom_indices
+        occupied_coeff_ab_mo = self.coeff_ab_mo[:, :num_occ_mo]
+
+        new_occupations = np.array(self.occupations[: num_occ_mo])
+        mo = np.ones(num_occ_mo)
+        occ_arr = new_occupations[None, :] * mo[:, None]
+        i = np.arange(num_occ_mo)
+        occ_arr[i, i] = 0
+
+        raw_dens_arr = occupied_coeff_ab_mo * occ_arr[:, None, :]
+        dens_arr = np.tensordot(raw_dens_arr, occupied_coeff_ab_mo.T, axes=([2], [0]))
+        raw_pops = np.tensordot(dens_arr, self.olp_ab_ab.T, axes=([2], [0]))
+
+        for index, ps in enumerate(raw_pops):
+            # Only specified atoms
+            raw_pops_ab = ps[ab_atom_indices == atoms[0]]
+            raw_pops_ab = raw_pops_ab[:, ab_atom_indices == atoms[1]]
+            raw_pops_ba = ps[ab_atom_indices == atoms[1]]
+            raw_pops_ba = raw_pops_ba[:, ab_atom_indices == atoms[0]]
+            raw_pops[index] = (np.trace(raw_pops_ab.dot(raw_pops_ba)))
+
+        output = raw_pops[:, 0, 0]
+        if self.occupations[0] == 1:
+            output = output * 2
+            return output
+        else:
+            return output
 
     def multicenter_bond_order(self, centers):
         """Return Multicenter bond order
