@@ -60,7 +60,10 @@ class DensPart(object):
         wpart = wpart_schemes[scheme]
         # make proatom database
         if scheme.lower() not in ["mbis", "b"]:
-            if "proatomdb" not in kwargs.keys():
+            if "proatomdb" not in kwargs.keys() or kwargs['proatomdb'] is None:
+                if np.any(numbers > 18):
+                    absent = list(numbers[numbers > 18])
+                    raise ValueError("Pro-atom for atomic number {} does not exist!".format(absent))
                 proatomdb = ProAtomDB.from_refatoms(numbers)
                 kwargs["proatomdb"] = proatomdb
             kwargs["local"] = False
@@ -141,7 +144,8 @@ class DensPart(object):
         else:
             # check fragments
             segments = sorted([item for frag in fragments for item in frag])
-            if segments != range(self.numbers):
+            segments = np.array(segments)
+            if segments.size != self.numbers.size:
                 raise ValueError("Items in Fragments should uniquely represent all atoms.")
         condensed = np.zeros(len(fragments))
         for index, frag in enumerate(fragments):
@@ -164,7 +168,7 @@ def check_molecule_grid(mol, grid):
         Instance of MolecularGrid numerical integration grid.
 
     """
-    if not np.max(abs(grid.coordinates - mol.coordinates)) < 1.e-6:
+    if not np.max(abs(grid.centers - mol.coordinates)) < 1.e-6:
         raise ValueError("Argument molecule & grid should have the same coordinates/centers.")
     if not np.max(abs(grid.numbers - mol.numbers)) < 1.e-6:
         raise ValueError("Arguments molecule & grid should have the same numbers.")
